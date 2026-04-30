@@ -1,0 +1,8 @@
+-r base.txt
+lightning>=2.3.0
+torchcrepe>=0.0.23
+pesq>=0.0.4
+pystoi>=0.4.1
+openai-whisper>=20231117
+jiwer>=3.0.4
+speechmos>=1.2.1

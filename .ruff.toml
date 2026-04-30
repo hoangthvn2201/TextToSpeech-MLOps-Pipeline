@@ -1,0 +1,18 @@
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts", "pipelines"]
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",   # line too long — handled by black
+    "B008",   # function calls in default args — common in FastAPI/Hydra
+    "N812",   # lowercase imported as non-lowercase — common for torch.nn as nn
+]
+
+[lint.isort]
+known-first-party = ["tts_pipeline"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

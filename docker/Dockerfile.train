@@ -1,0 +1,28 @@
+FROM pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+
+WORKDIR /workspace
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    espeak-ng \
+    libsndfile1 \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements/train.txt requirements/train.txt
+RUN pip install --no-cache-dir -r requirements/train.txt
+
+# Install package
+COPY src/ src/
+COPY pyproject.toml .
+RUN pip install --no-cache-dir -e ".[train]" --no-deps
+
+# Copy configs and scripts (data mounted at runtime)
+COPY configs/ configs/
+COPY scripts/ scripts/
+COPY params.yaml .
+COPY dvc.yaml .
+
+ENV PYTHONUNBUFFERED=1
+CMD ["python", "scripts/run_training.py"]

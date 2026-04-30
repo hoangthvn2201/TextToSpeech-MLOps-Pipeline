@@ -1,0 +1,22 @@
+# @package evaluation
+n_ode_steps_eval: 50        # higher quality for evaluation (vs 10 during training)
+batch_size: 8
+whisper_model: small
+
+# Two-tier gating strategy:
+# 1. absolute_floor: hard minimum regardless of baseline
+# 2. relative_delta: max allowed regression vs Production baseline
+# If no Production model exists, only absolute_floor applies.
+absolute_floor:
+  utmos_mean: 3.0
+  cer: 0.20
+  stoi_mean: 0.60
+  rtf_p95: 0.20
+
+relative_delta:
+  utmos_mean: -0.05     # allow up to -5% UTMOS regression
+  cer: 0.02             # allow up to +2pp CER regression
+  stoi_mean: -0.03
+  rtf_p95: 0.05         # allow up to +5% latency regression
+
+shadow_n_requests: 1000

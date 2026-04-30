@@ -1,0 +1,171 @@
+# dvc.yaml — execution graph and reproducibility engine.
+# Prefect wraps these stages for scheduling; DVC owns the logic.
+# Run: dvc repro          (full pipeline)
+#      dvc repro <stage>  (single stage + dependencies)
+
+stages:
+
+  ingest:
+    cmd: python scripts/run_data_pipeline.py --stage ingest
+    deps:
+      - data/raw/audio
+      - data/raw/transcripts
+      - src/tts_pipeline/data/ingestion.py
+    outs:
+      - data/metadata.csv
+    params:
+      - params.yaml:
+          - data.language
+          - data.val_ratio
+          - data.test_ratio
+
+  normalize_audio:
+    cmd: python scripts/run_data_pipeline.py --stage normalize
+    deps:
+      - data/raw/audio
+      - data/metadata.csv
+      - src/tts_pipeline/data/audio_processor.py
+    outs:
+      - data/processed/audio_normalized
+    params:
+      - params.yaml:
+          - data.sample_rate
+          - data.trim_silence
+          - data.peak_normalize_db
+
+  clean_transcripts:
+    cmd: python scripts/run_data_pipeline.py --stage clean
+    deps:
+      - data/metadata.csv
+      - src/tts_pipeline/data/transcript_cleaner.py
+      - src/tts_pipeline/text/cleaners.py
+    outs:
+      - data/processed/transcripts_cleaned
+
+  phonemize:
+    cmd: python scripts/run_data_pipeline.py --stage phonemize
+    deps:
+      - data/processed/transcripts_cleaned
+      - src/tts_pipeline/text/phonemizers
+      - src/tts_pipeline/text/base_phonemizer.py
+    outs:
+      - data/processed/phonemes.csv
+    params:
+      - params.yaml:
+          - text.phonemizer
+          - text.language
+          - text.add_blank
+          - text.use_ipa
+
+  extract_features:
+    cmd: python scripts/run_data_pipeline.py --stage features
+    deps:
+      - data/processed/audio_normalized
+      - data/processed/phonemes.csv
+      - src/tts_pipeline/data/feature_extractor.py
+    outs:
+      - data/processed/mels
+      - data/processed/f0
+      - data/processed/stats.json
+    params:
+      - params.yaml:
+          - data.sample_rate
+          - data.n_fft
+          - data.hop_length
+          - data.win_length
+          - data.n_mels
+          - data.f_min
+          - data.f_max
+
+  validate:
+    cmd: python scripts/run_data_pipeline.py --stage validate
+    deps:
+      - data/processed/audio_normalized
+      - data/processed/mels
+      - data/processed/phonemes.csv
+      - src/tts_pipeline/data/validator.py
+    outs:
+      - data/splits/train.txt
+      - data/splits/val.txt
+      - data/splits/test.txt
+      - data/processed/validation/rejected_samples.csv
+      - data/processed/validation/phoneme_distribution.json
+      - data/processed/validation/duration_histogram.json
+      - data/processed/validation/snr_distribution.json
+      - data/processed/validation/dataset_scorecard.json
+    params:
+      - params.yaml:
+          - data.min_duration
+          - data.max_duration
+          - data.min_snr_db
+          - data.dataset_grade_threshold
+
+  train:
+    cmd: python scripts/run_training.py
+    deps:
+      - data/processed/mels
+      - data/processed/f0
+      - data/processed/stats.json
+      - data/splits/train.txt
+      - data/splits/val.txt
+      - src/tts_pipeline/models/matcha
+      - src/tts_pipeline/training
+    outs:
+      - artifacts/checkpoints/best_model.ckpt
+    params:
+      - params.yaml:
+          - model
+          - training
+
+  train_vocoder:
+    cmd: python scripts/run_training.py --config-name hifigan
+    deps:
+      - data/processed/mels
+      - data/processed/audio_normalized
+      - data/splits/train.txt
+      - src/tts_pipeline/models/vocoder
+    outs:
+      - artifacts/checkpoints/hifigan_best.ckpt
+    params:
+      - params.yaml:
+          - vocoder
+          - vocoder_training
+
+  evaluate:
+    cmd: python scripts/run_evaluation.py
+    deps:
+      - data/splits/test.txt
+      - data/processed/audio_normalized
+      - data/processed/stats.json
+      - artifacts/checkpoints/best_model.ckpt
+      - artifacts/checkpoints/hifigan_best.ckpt
+      - src/tts_pipeline/evaluation
+    outs:
+      - reports/latest/evaluation_report.json
+      - reports/latest/evaluation_report.html
+      - reports/latest/synthesized
+    params:
+      - params.yaml:
+          - evaluation
+
+  export:
+    cmd: python scripts/export_model.py
+    deps:
+      - artifacts/checkpoints/best_model.ckpt
+      - artifacts/checkpoints/hifigan_best.ckpt
+      - src/tts_pipeline/models
+      - reports/latest/evaluation_report.json
+    outs:
+      - artifacts/export/acoustic.onnx
+      - artifacts/export/vocoder.onnx
+      - artifacts/export/config.json
+      - artifacts/export/phoneme_vocab.json
+      - artifacts/export/model_card.json
+    params:
+      - params.yaml:
+          - export
+          - data.sample_rate
+          - data.hop_length
+          - data.n_mels
+          - model.n_ode_steps
+          - data.language

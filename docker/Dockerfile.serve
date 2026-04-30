@@ -1,0 +1,28 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies (minimal — no CUDA, no espeak)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install serving dependencies only (no PyTorch)
+COPY requirements/serve.txt requirements/serve.txt
+RUN pip install --no-cache-dir -r requirements/serve.txt
+
+# Install package (serve extras only)
+COPY src/ src/
+COPY pyproject.toml .
+RUN pip install --no-cache-dir -e ".[serve]" --no-deps
+
+COPY configs/ configs/
+
+# Model bundle mounted at runtime: docker run -v ./artifacts/export:/app/artifacts/export
+ENV BUNDLE_PATH=/app/artifacts/export
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8080
+
+CMD ["python", "-m", "uvicorn", "tts_pipeline.serving.app:create_app", \
+     "--factory", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]

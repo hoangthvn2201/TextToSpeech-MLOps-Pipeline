@@ -1,0 +1,74 @@
+name: Promote — Shadow to Production
+
+on:
+  workflow_run:
+    workflows: ["Pipeline — Full DVC Run"]
+    types: [completed]
+
+jobs:
+  promote:
+    name: Promote Model to Production
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production    # requires manual approval in GitHub Environments settings
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MLflow
+        run: pip install mlflow
+
+      - name: Load evaluation report and check shadow pass
+        run: |
+          python - <<'EOF'
+          import json, sys
+          with open("reports/latest/evaluation_report.json") as f:
+              report = json.load(f)
+          if not report.get("pass"):
+              print("Cannot promote — evaluation report did not pass")
+              sys.exit(1)
+          print("Evaluation report: PASSED")
+          EOF
+
+      - name: Promote Shadow → Production
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: |
+          python - <<'EOF'
+          import mlflow, sys
+          from mlflow.tracking import MlflowClient
+          import os
+
+          # Determine language from params.yaml
+          import yaml
+          with open("params.yaml") as f:
+              params = yaml.safe_load(f)
+          language = params["data"]["language"]
+          model_name = f"matcha-tts-{language}"
+
+          client = MlflowClient(tracking_uri=os.environ["MLFLOW_TRACKING_URI"])
+          shadow_versions = client.get_latest_versions(model_name, stages=["Shadow"])
+          if not shadow_versions:
+              print(f"No Shadow model found for {model_name}")
+              sys.exit(1)
+
+          version = shadow_versions[0].version
+          client.transition_model_version_stage(
+              name=model_name,
+              version=version,
+              stage="Production",
+              archive_existing_versions=True,
+          )
+          print(f"Promoted {model_name} v{version} → Production")
+          EOF
+
+      - name: Trigger serving re-deploy
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DISPATCH_TOKEN }}
+          event-type: model-promoted
+          client-payload: '{"model": "matcha-tts", "stage": "Production"}'

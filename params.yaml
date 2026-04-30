@@ -1,0 +1,85 @@
+# params.yaml — single source of truth for all pipeline parameters.
+# Both DVC (stage dependency tracking) and Hydra (config composition) read this file.
+# Changing any value here will invalidate downstream DVC stages automatically.
+
+data:
+  language: vi                  # target language code (ISO 639-1)
+  sample_rate: 22050
+  n_fft: 1024
+  hop_length: 256
+  win_length: 1024
+  n_mels: 80
+  f_min: 0.0
+  f_max: 8000.0
+  trim_silence: true
+  peak_normalize_db: -3.0
+  min_duration: 0.5             # seconds
+  max_duration: 15.0            # seconds
+  min_snr_db: 20.0
+  val_ratio: 0.05
+  test_ratio: 0.05
+  dataset_grade_threshold: C    # halt pipeline if scorecard grade drops below this
+
+text:
+  phonemizer: espeak            # espeak | vi | custom
+  language: vi
+  add_blank: true               # insert blank token between phonemes
+  use_ipa: true
+
+model:
+  encoder_dim: 192
+  encoder_heads: 2
+  encoder_layers: 6
+  encoder_kernel_size: 3
+  decoder_channels: 256
+  decoder_layers: 4
+  n_ode_steps: 10               # number of ODE solver steps during training
+  speaker_embedding_dim: 0      # 0 = single speaker; >0 enables multi-speaker
+
+vocoder:
+  upsample_rates: [8, 8, 2, 2]
+  upsample_kernel_sizes: [16, 16, 4, 4]
+  upsample_initial_channel: 512
+  resblock_kernel_sizes: [3, 7, 11]
+  resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+
+training:
+  max_epochs: 1000
+  batch_size: 16
+  learning_rate: 1.0e-4
+  warmup_steps: 1000
+  grad_clip_val: 1.0
+  accumulate_grad_batches: 1
+  val_check_interval: 1.0
+  log_every_n_steps: 50
+  save_top_k: 3
+  early_stopping_patience: 50
+  resume_from_checkpoint: null  # path or null; trainer auto-resumes if ckpt exists
+
+vocoder_training:
+  max_epochs: 500
+  batch_size: 16
+  learning_rate: 2.0e-4
+  segment_size: 8192            # audio samples per training chunk
+  warmup_steps: 500
+
+evaluation:
+  n_ode_steps_eval: 50          # more steps for higher quality at eval time
+  batch_size: 8
+  whisper_model: small          # whisper model size for CER computation
+  absolute_floor:
+    utmos_mean: 3.0
+    cer: 0.20
+    stoi_mean: 0.60
+    rtf_p95: 0.20
+  relative_delta:
+    utmos_mean: -0.05
+    cer: 0.02
+    stoi_mean: -0.03
+    rtf_p95: 0.05
+  shadow_n_requests: 1000       # shadow requests before auto-comparison
+
+export:
+  opset_version: 17
+  quantize: true                # apply int8 dynamic quantization after export
+  dynamic_axes: true
