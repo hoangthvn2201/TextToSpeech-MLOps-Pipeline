@@ -758,10 +758,20 @@ logcrunch/
 
 Write this yourself before writing any Python. The packaging configuration is the contract the rest of the project must honor.
 
+First, make sure your terminal is inside the mini-project directory:
+
+```bash
+cd logcrunch
+```
+
+If you stay at the parent repository root, `pip install -e ".[dev]"` installs the parent
+`tts-pipeline` project instead of this mini project, so the `logcrunch` command will not be
+created. From the parent root, use `pip install -e "./logcrunch[dev]"` instead.
+
 ```toml
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "logcrunch"
@@ -800,13 +810,27 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 ```
 
+Because `[project.scripts]` points to `logcrunch.cli:main`, create a tiny temporary `cli.py`
+before installing. You will replace it with the real CLI in Step 6.
+
+```python
+from __future__ import annotations
+
+
+def main() -> None:
+    print("logcrunch CLI is installed")
+```
+
 Install it in editable mode so `logcrunch` becomes a real terminal command:
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-**Checkpoint:** `logcrunch --help` should run (even if it prints nothing yet). If you get `command not found`, your entry point is misconfigured.
+**Checkpoint:** `logcrunch` should run and print `logcrunch CLI is installed`.
+After Step 6, `logcrunch --help` should show the real argparse help text.
+If you get `command not found`, check that you ran `pip install -e ".[dev]"` from the
+`logcrunch/` directory, not from the parent repository root.
 
 ---
 

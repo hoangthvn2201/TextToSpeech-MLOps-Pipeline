@@ -68,3 +68,7 @@ reports/
 *.pem
 *.key
 secrets/
+
+# Learning course implementations
+logcrunch/*
+
