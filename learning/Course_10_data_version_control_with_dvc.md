@@ -686,7 +686,6 @@ stages:
     cmd: python scripts/transform.py
     deps:
       - data/raw.csv
-      - scripts/transform.py
     outs:
       - data/transformed.csv
     params:
