@@ -1,0 +1,17 @@
+# @package data
+language: vi
+sample_rate: 22050
+n_fft: 1024
+hop_length: 256
+win_length: 1024
+n_mels: 80
+f_min: 0.0
+f_max: 8000.0
+trim_silence: true
+peak_normalize_db: -3.0
+min_duration: 0.5
+max_duration: 15.0
+min_snr_db: 20.0
+val_ratio: 0.05
+test_ratio: 0.05
+dataset_grade_threshold: C

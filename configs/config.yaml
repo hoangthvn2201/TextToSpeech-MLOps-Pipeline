@@ -1,0 +1,29 @@
+# Root Hydra config — composes all sub-configs.
+# Override at CLI: python scripts/run_training.py training.learning_rate=5e-5
+# Multirun sweep:  python scripts/run_training.py --multirun training.learning_rate=1e-3,1e-4,5e-5
+
+defaults:
+  - data: base
+  - model: matcha_tts
+  - training: base
+  - evaluation: metrics
+  - serving: api
+  - _self_
+
+experiment:
+  name: tts-${data.language}-matcha
+  run_name: "${experiment.name}-${now:%Y%m%d_%H%M%S}"
+  tags:
+    language: ${data.language}
+    model: matcha_tts
+
+mlflow:
+  tracking_uri: "http://localhost:5000"
+  experiment_name: ${experiment.name}
+
+paths:
+  data_root: data
+  artifacts: artifacts
+  reports: reports/latest
+  checkpoints: artifacts/checkpoints
+  export: artifacts/export

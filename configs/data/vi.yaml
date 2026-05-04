@@ -1,0 +1,54 @@
+# @package data
+# Vietnamese-specific overrides
+language: vi
+f_max: 8000.0
+
+# Vietnamese phoneme inventory (IPA-based via eSpeak-NG)
+# Tones are encoded as diacritics handled in vi_phonemizer.py
+phoneme_inventory:
+  - b
+  - c
+  - d
+  - f
+  - g
+  - h
+  - j
+  - k
+  - l
+  - m
+  - n
+  - p
+  - r
+  - s
+  - t
+  - v
+  - x
+  - z
+  - "ŋ"
+  - "ɲ"
+  - "ð"
+  - "ɣ"
+  - "χ"
+  - a
+  - e
+  - i
+  - o
+  - u
+  - "ə"
+  - "ɛ"
+  - "ɔ"
+  - "ɯ"
+  - "ɪ"
+  - "ʊ"
+  # tones (6 Vietnamese tones)
+  - "˧"
+  - "˨˩"
+  - "˧˥"
+  - "˧˩˧"
+  - "˧ʔ˥"
+  - "˨˩ʔ"
+  # special
+  - _PAD_
+  - _BOS_
+  - _EOS_
+  - _BLANK_

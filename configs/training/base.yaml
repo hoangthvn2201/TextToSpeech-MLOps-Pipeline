@@ -1,0 +1,16 @@
+# @package training
+max_epochs: 1000
+batch_size: 16
+learning_rate: 1.0e-4
+warmup_steps: 1000
+grad_clip_val: 1.0
+accumulate_grad_batches: 1
+val_check_interval: 1.0
+log_every_n_steps: 50
+save_top_k: 3
+early_stopping_patience: 50
+resume_from_checkpoint: null   # null = auto-detect from artifacts/checkpoints/
+precision: bf16-mixed          # bf16-mixed | 16-mixed | 32
+use_compile: false             # torch.compile — set true on A100/H100
+num_workers: 4
+audio_log_n_samples: 5        # validation sentences logged to MLflow per epoch

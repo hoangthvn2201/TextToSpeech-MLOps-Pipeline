@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+*.whl
+.venv/
+venv/
+env/
+.env
+.env.local
+*.env
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# MyPy / type checking
+.mypy_cache/
+.dmypy.json
+
+# Pytest
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Ruff
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Artifacts — stored in DVC remote, not git
+artifacts/
+data/raw/
+data/processed/
+data/splits/
+data/metadata.csv
+
+# Reports (DVC tracked)
+reports/
+
+# DVC internal
+.dvc/tmp/
+.dvc/cache/
+
+# Docker
+.docker/
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# Learning course implementations
+logcrunch/*
+
+dvctoy/*
+dvctoy
+
+lightkit/*

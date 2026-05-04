@@ -1,0 +1,21 @@
+# @package serving
+host: 0.0.0.0
+port: 8080
+workers: 1
+reload: false
+log_level: info
+
+# Model bundle path (relative to working directory)
+bundle_path: artifacts/export
+
+# Shadow model settings
+shadow_enabled: false          # set true in production to enable shadow inference
+shadow_bundle_path: null       # path to shadow model bundle; null = disabled
+
+# Streaming
+stream_chunk_sentences: true   # chunk streaming output by sentence
+stream_max_sentences: 50       # guard against very long inputs
+
+# Request limits
+max_text_length: 500           # characters
+request_timeout_seconds: 30

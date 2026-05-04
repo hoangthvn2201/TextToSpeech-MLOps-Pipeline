@@ -1,0 +1,12 @@
+# @package model
+encoder_dim: 192
+encoder_heads: 2
+encoder_layers: 6
+encoder_kernel_size: 3
+decoder_channels: 256
+decoder_layers: 4
+n_ode_steps: 10             # ODE steps at training time (fast)
+ode_solver: dopri5          # adaptive solver; use euler for fixed-step fast inference
+sigma_min: 1.0e-4           # minimum noise level for flow matching
+speaker_embedding_dim: 0    # 0 = single-speaker; set >0 to enable multi-speaker
+use_sdp: true               # stochastic duration predictor

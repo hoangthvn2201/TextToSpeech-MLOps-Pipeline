@@ -1,0 +1,94 @@
+name: CI — Lint, Type-Check, Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install code quality tools
+        run: pip install ruff black mypy pydantic>=2.7
+
+      - name: Ruff lint
+        run: ruff check src/ tests/ scripts/ pipelines/
+
+      - name: Black format check
+        run: black --check src/ tests/ scripts/ pipelines/
+
+      - name: Mypy type check
+        run: mypy src/tts_pipeline/ --ignore-missing-imports
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: |
+          sudo apt-get install -y libsndfile1
+          pip install -e ".[dev]"
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --cov=src/tts_pipeline --cov-report=xml -m "not slow"
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  integration-smoke:
+    name: Integration Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install train + dev dependencies
+        run: |
+          sudo apt-get install -y libsndfile1
+          pip install -e ".[dev]"
+
+      - name: Run integration smoke tests (no GPU)
+        run: pytest tests/integration/ -v -m "not slow and not gpu" --timeout=300
+
+  dvc-lint:
+    name: DVC Pipeline Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install DVC
+        run: pip install dvc
+
+      - name: Validate dvc.yaml
+        run: dvc dag --dot > /dev/null
+
+      - name: Check params diff
+        run: dvc params diff --all 2>/dev/null || true

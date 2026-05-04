@@ -1,0 +1,8 @@
+# @package training
+# Fine-tuning overrides — used when adapting a pretrained checkpoint to a new language
+max_epochs: 200
+learning_rate: 1.0e-5
+warmup_steps: 200
+early_stopping_patience: 20
+freeze_encoder: false          # set true to freeze encoder weights during first N epochs
+resume_from_checkpoint: artifacts/checkpoints/pretrained.ckpt

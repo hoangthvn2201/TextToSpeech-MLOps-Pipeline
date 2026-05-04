@@ -1,0 +1,76 @@
+name: Pipeline — Full DVC Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: "Force re-training even if DVC cache is valid"
+        type: boolean
+        default: false
+
+jobs:
+  run-pipeline:
+    name: DVC Pipeline Run
+    runs-on: [self-hosted, gpu]    # requires a GPU runner registered in your repo
+    environment: production
+    timeout-minutes: 480           # 8 hours max
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y libsndfile1 espeak-ng
+          pip install -e ".[train]" dvc[s3]
+
+      - name: Configure DVC remote
+        run: |
+          dvc remote modify storage access_key_id ${{ secrets.DVC_S3_KEY }}
+          dvc remote modify storage secret_access_key ${{ secrets.DVC_S3_SECRET }}
+
+      - name: Pull DVC data
+        run: dvc pull data/raw --run-cache
+
+      - name: Run DVC pipeline
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
+        run: |
+          if [ "${{ inputs.force_retrain }}" = "true" ]; then
+            dvc repro --force
+          else
+            dvc repro
+          fi
+
+      - name: Push DVC outputs
+        run: dvc push
+
+      - name: Check evaluation gate
+        run: |
+          python - <<'EOF'
+          import json, sys
+          with open("reports/latest/evaluation_report.json") as f:
+              report = json.load(f)
+          if not report.get("pass"):
+              print("EVALUATION FAILED. Gate failures:")
+              for f in report.get("failures", []):
+                  print(f"  - {f}")
+              sys.exit(1)
+          print("All evaluation gates passed.")
+          EOF
+
+      - name: Commit updated dvc.lock
+        run: |
+          git config user.email "ci@pipeline"
+          git config user.name "Pipeline Bot"
+          git add dvc.lock reports/latest/evaluation_report.json
+          git diff --cached --quiet || git commit -m "ci: update dvc.lock after pipeline run [skip ci]"
+          git push
